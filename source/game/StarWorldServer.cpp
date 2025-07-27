@@ -1265,6 +1265,10 @@ void WorldServer::setPlanetType(String const& planetType, String const& primaryB
   }
 }
 
+void WorldServer::setWeatherIndex(size_t weatherIndex) {
+  m_weather.setWeatherIndex(weatherIndex);
+}
+
 Maybe<pair<String, String>> WorldServer::pullNewPlanetType() {
   if (m_newPlanetType)
     return m_newPlanetType.take();

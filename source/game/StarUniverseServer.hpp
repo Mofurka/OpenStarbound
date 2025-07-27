@@ -104,6 +104,7 @@ public:
   bool unbanUuid(String const& uuidString);
 
   bool updatePlanetType(CelestialCoordinate const& coordinate, String const& newType, String const& weatherBiome);
+  bool setWeather(CelestialCoordinate const& coordinate, size_t weatherIndex);
 
   bool sendPacket(ConnectionId clientId, PacketPtr packet);
 

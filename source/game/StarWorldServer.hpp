@@ -269,6 +269,9 @@ public:
   // world parameters along with the primary biome and the weather pool
   void setPlanetType(String const& planetType, String const& primaryBiomeName);
 
+  // Force the current weather to a specific index from the world's weather pool
+  void setWeatherIndex(size_t weatherIndex);
+
   // used to notify the universe server that the celestial planet type has changed
   Maybe<pair<String, String>> pullNewPlanetType();
 

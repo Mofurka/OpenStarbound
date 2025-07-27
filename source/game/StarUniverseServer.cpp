@@ -489,6 +489,20 @@ bool UniverseServer::updatePlanetType(CelestialCoordinate const& coordinate, Str
   return false;
 }
 
+bool UniverseServer::setWeather(CelestialCoordinate const& coordinate, size_t weatherIndex) {
+  RecursiveMutexLocker locker(m_mainLock);
+
+  if (!coordinate.isNull() && m_celestialDatabase->coordinateValid(coordinate)) {
+    if (auto world = createWorld(CelestialWorldId(coordinate))) {
+      locker.unlock();
+      world->executeAction([weatherIndex](WorldServerThread*, WorldServer* ws) { ws->setWeatherIndex(weatherIndex); });
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool UniverseServer::sendPacket(ConnectionId clientId, PacketPtr packet) {
   RecursiveMutexLocker locker(m_mainLock);
   ReadLocker clientsLocker(m_clientsLock);

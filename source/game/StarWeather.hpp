@@ -33,6 +33,10 @@ public:
 
   void update(double dt);
 
+  // Immediately sets the active weather index. If the index is NPos or out of
+  // range, weather is cleared.
+  void setWeatherIndex(size_t weatherIndex);
+
   float wind() const;
   float weatherIntensity() const;
 
