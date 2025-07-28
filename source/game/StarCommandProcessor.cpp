@@ -967,87 +967,56 @@ Maybe<ConnectionId> CommandProcessor::playerCidFromCommand(String const& player,
 
 //wow, wtf. TODO: replace with hashmap
 String CommandProcessor::handleCommand(ConnectionId connectionId, String const& command, String const& argumentString) {
-  if (command == "admin") {
-    return admin(connectionId, argumentString);
-  } else if (command == "timewarp") {
-    return timewarp(connectionId, argumentString);
-  } else if (command == "timescale") {
-    return timescale(connectionId, argumentString);
-  } else if (command == "tickrate") {
-    return tickrate(connectionId, argumentString);
-  } else if (command == "settileprotection") {
-    return setTileProtection(connectionId, argumentString);
-  } else if (command == "setdungeonid") {
-    return setDungeonId(connectionId, argumentString);
-  } else if (command == "setspawnpoint") {
-    return setPlayerStart(connectionId, argumentString);
-  } else if (command == "spawnitem") {
-    return spawnItem(connectionId, argumentString);
-  } else if (command == "spawntreasure") {
-    return spawnTreasure(connectionId, argumentString);
-  } else if (command == "spawnmonster") {
-    return spawnMonster(connectionId, argumentString);
-  } else if (command == "spawnnpc") {
-    return spawnNpc(connectionId, argumentString);
-  } else if (command == "spawnstagehand") {
-    return spawnStagehand(connectionId, argumentString);
-  } else if (command == "clearstagehand") {
-    return clearStagehand(connectionId, argumentString);
-  } else if (command == "spawnvehicle") {
-    return spawnVehicle(connectionId, argumentString);
-  } else if (command == "spawnliquid") {
-    return spawnLiquid(connectionId, argumentString);
-  } else if (command == "pvp") {
-    return pvp(connectionId, argumentString);
-  } else if (command == "serverwhoami") {
-    return whoami(connectionId, argumentString);
-  } else if (command == "kick") {
-    return kick(connectionId, argumentString);
-  } else if (command == "ban") {
-    return ban(connectionId, argumentString);
-  } else if (command == "unbanip") {
-    return unbanIp(connectionId, argumentString);
-  } else if (command == "unbanuuid") {
-    return unbanUuid(connectionId, argumentString);
-  } else if (command == "list") {
-    return list(connectionId, argumentString);
-  } else if (command == "help") {
-    return help(connectionId, argumentString);
-  } else if (command == "warp") {
-    return warp(connectionId, argumentString);
-  } else if (command == "warprandom") {
-    return warpRandom(connectionId, argumentString);
-  } else if (command == "whereami") {
-    return clientCoordinate(connectionId, argumentString);
-  } else if (command == "whereis") {
-    return clientCoordinate(connectionId, argumentString);
-  } else if (command == "serverreload") {
-    return serverReload(connectionId, argumentString);
-  } else if (command == "eval") {
-    return eval(connectionId, argumentString);
-  } else if (command == "entityeval") {
-    return entityEval(connectionId, argumentString);
-  } else if (command == "enablespawning") {
-    return enableSpawning(connectionId, argumentString);
-  } else if (command == "disablespawning") {
-    return disableSpawning(connectionId, argumentString);
-  } else if (command == "placedungeon") {
-    return placeDungeon(connectionId, argumentString);
-  } else if (command == "setuniverseflag") {
-    return setUniverseFlag(connectionId, argumentString);
-  } else if (command == "resetuniverseflags") {
-    return resetUniverseFlags(connectionId, argumentString);
-  } else if (command == "addbiomeregion") {
-    return addBiomeRegion(connectionId, argumentString);
-  } else if (command == "expandbiomeregion") {
-    return expandBiomeRegion(connectionId, argumentString);
-  } else if (command == "updateplanettype") {
-    return updatePlanetType(connectionId, argumentString);
-  } else if (command == "setweather") {
-    return setWeather(connectionId, argumentString);
-  } else if (command == "setenvironmentbiome") {
-    return setEnvironmentBiome(connectionId, argumentString);
-  } else if (auto res = m_scriptComponent.invoke("command", command, connectionId, jsonFromStringList(m_parser.tokenizeToStringList(argumentString)))) {
+  using HandlerFn = String (CommandProcessor::*)(ConnectionId, String const&);
+  static const std::unordered_map<String, HandlerFn> commandMap = {
+    {"admin", &CommandProcessor::admin},
+    {"timewarp", &CommandProcessor::timewarp},
+    {"timescale", &CommandProcessor::timescale},
+    {"tickrate", &CommandProcessor::tickrate},
+    {"settileprotection", &CommandProcessor::setTileProtection},
+    {"setdungeonid", &CommandProcessor::setDungeonId},
+    {"setspawnpoint", &CommandProcessor::setPlayerStart},
+    {"spawnitem", &CommandProcessor::spawnItem},
+    {"spawntreasure", &CommandProcessor::spawnTreasure},
+    {"spawnmonster", &CommandProcessor::spawnMonster},
+    {"spawnnpc", &CommandProcessor::spawnNpc},
+    {"spawnstagehand", &CommandProcessor::spawnStagehand},
+    {"clearstagehand", &CommandProcessor::clearStagehand},
+    {"spawnvehicle", &CommandProcessor::spawnVehicle},
+    {"spawnliquid", &CommandProcessor::spawnLiquid},
+    {"pvp", &CommandProcessor::pvp},
+    {"serverwhoami", &CommandProcessor::whoami},
+    {"kick", &CommandProcessor::kick},
+    {"ban", &CommandProcessor::ban},
+    {"unbanip", &CommandProcessor::unbanIp},
+    {"unbanuuid", &CommandProcessor::unbanUuid},
+    {"list", &CommandProcessor::list},
+    {"help", &CommandProcessor::help},
+    {"warp", &CommandProcessor::warp},
+    {"warprandom", &CommandProcessor::warpRandom},
+    {"whereami", &CommandProcessor::clientCoordinate},
+    {"whereis", &CommandProcessor::clientCoordinate},
+    {"serverreload", &CommandProcessor::serverReload},
+    {"eval", &CommandProcessor::eval},
+    {"entityeval", &CommandProcessor::entityEval},
+    {"enablespawning", &CommandProcessor::enableSpawning},
+    {"disablespawning", &CommandProcessor::disableSpawning},
+    {"placedungeon", &CommandProcessor::placeDungeon},
+    {"setuniverseflag", &CommandProcessor::setUniverseFlag},
+    {"resetuniverseflags", &CommandProcessor::resetUniverseFlags},
+    {"addbiomeregion", &CommandProcessor::addBiomeRegion},
+    {"expandbiomeregion", &CommandProcessor::expandBiomeRegion},
+    {"updateplanettype", &CommandProcessor::updatePlanetType},
+    {"setweather", &CommandProcessor::setWeather},
+    {"setenvironmentbiome", &CommandProcessor::setEnvironmentBiome}
+  };
+
+  auto it = commandMap.find(command);
+  if (it != commandMap.end()) {
+    return (this->*(it->second))(connectionId, argumentString);
+  }
+
+  if (auto res = m_scriptComponent.invoke("command", command, connectionId, jsonFromStringList(m_parser.tokenizeToStringList(argumentString)))) {
     return toString(*res);
   } else {
     return strf("No such command {}", command);
