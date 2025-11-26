@@ -255,6 +255,9 @@ public:
   // Run a cleanup pass and remove any assets past their time to live.
   void cleanup();
 
+  // Add a runtime asset source (like MemoryAssetSource) that can provide assets dynamically
+  void addRuntimeSource(String const& sourceName, const AssetSourcePtr& source);
+
 private:
   EnumMap<AssetType> const AssetTypeNames{
       {AssetType::Json, "json"},

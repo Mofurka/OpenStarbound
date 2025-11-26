@@ -693,6 +693,46 @@ void Assets::cleanup() {
   }
 }
 
+void Assets::addRuntimeSource(String const& sourceName, const AssetSourcePtr& source) {
+  MutexLocker assetsLocker(m_assetsMutex);
+
+  // Check if source already exists
+  const bool sourceExists = m_assetSourcePaths.hasLeftValue(sourceName);
+
+  if (!sourceExists) {
+    // Add new source to the path mapping
+    m_assetSourcePaths.add(sourceName, source);
+    m_assetSources.append(sourceName);
+  }
+
+  // Always update/add all assets from this source (in case new files were added)
+  const auto paths = source->assetPaths();
+  int addedCount = 0;
+  for (auto const& filename : paths) {
+    // Check if file already registered
+    if (!m_files.contains(filename)) {
+      AssetFileDescriptor descriptor;
+      descriptor.sourceName = filename;
+      descriptor.source = source;
+
+      m_files.set(filename, std::move(descriptor));
+
+      // Add to extension index
+      if (const auto dotPos = filename.findLast('.')) {
+        String extension = filename.substr(dotPos + 1);
+        m_filesByExtension[extension].add(filename);
+      }
+      addedCount++;
+    }
+  }
+
+  if (sourceExists) {
+    Logger::debug("Updated runtime asset source '{}' (now {} assets, added {})", sourceName, paths.size(), addedCount);
+  } else {
+    Logger::info("Added runtime asset source '{}' with {} assets", sourceName, paths.size());
+  }
+}
+
 bool Assets::AssetId::operator==(AssetId const& assetId) const {
   return tie(type, path) == tie(assetId.type, assetId.path);
 }

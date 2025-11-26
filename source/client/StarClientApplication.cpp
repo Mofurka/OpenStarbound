@@ -24,6 +24,7 @@
 #include "StarClipboardLuaBindings.hpp"
 #include "StarInputLuaBindings.hpp"
 #include "StarInterfaceLuaBindings.hpp"
+#include "StarLuaAssetBindings.hpp"
 #include "StarLuaHttpBindings.hpp"
 #include "StarRenderingLuaBindings.hpp"
 #include "StarTeamClientLuaBindings.hpp"
@@ -630,6 +631,8 @@ void ClientApplication::changeState(MainAppState newState) {
     const bool luaHttpEnabled = m_root->configuration()->getPath("safe.luaHttp.enabled").optBool().value(false);
 
     m_universeClient->setLuaCallbacks("http", LuaBindings::makeHttpCallbacks(luaHttpEnabled));
+    m_universeClient->setLuaCallbacks("temp", LuaBindings::makeAssetCallbacks());
+
 
     auto heldScriptPanes = make_shared<List<MainInterface::ScriptPaneInfo>>();
 
