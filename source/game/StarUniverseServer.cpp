@@ -946,7 +946,7 @@ void UniverseServer::warpPlayers() {
           // Checking the spawn target validity then adding the client is not
           // perfect, it can still become invalid in between, if we fail at
           // adding the client we need to warp them back.
-          bool clientAdded = toWorld && toWorld->addClient(clientId, warpToWorld.target, !clientContext->remoteAddress(), clientContext->canBecomeAdmin(), clientContext->netRules());
+          bool clientAdded = toWorld && toWorld->addClient(clientId, warpToWorld.target, !clientContext->remoteAddress(), clientContext->canBecomeAdmin(), clientContext->maxLoadedSectors(), clientContext->netRules());
 
           locker.lock();
           if (clientAdded) {
@@ -1801,6 +1801,9 @@ void UniverseServer::acceptConnection(UniverseConnection connection, Maybe<HostA
   }
 
   bool administrator = false;
+  // Per-account limit on how many tile sectors may be streamed around the
+  // player. Falls back to the server-wide default; 0 means unlimited.
+  int maxLoadedSectors = configuration->get("defaultMaxLoadedSectors", 0).toInt();
   String accountString = !clientConnect->account.empty() ? strf("'{}'", clientConnect->account) : "<anonymous>";
 
   auto connectionFail = [&](String message) {
@@ -1819,6 +1822,9 @@ void UniverseServer::acceptConnection(UniverseConnection connection, Maybe<HostA
 
   if (!remoteAddress) {
     administrator = true;
+    // The local (host) player runs on this machine and is not a bandwidth
+    // abuse vector, so never limit its sector streaming.
+    maxLoadedSectors = 0;
     Logger::info("UniverseServer: Logged in player '{}' locally", clientConnect->playerName);
   } else {
     if (clientConnect->assetsDigest != m_assetsDigest) {
@@ -1851,6 +1857,7 @@ void UniverseServer::acceptConnection(UniverseConnection connection, Maybe<HostA
       bool success = false;
       if (Json account = configuration->get("serverUsers").get(clientConnect->account, {})) {
         administrator = account.getBool("admin", false);
+        maxLoadedSectors = account.getInt("maxSectors", maxLoadedSectors);
         ByteArray passAccountSalt = (account.getString("password") + clientConnect->account).utf8Bytes();
         passAccountSalt.append(passwordSalt);
         ByteArray passHash = sha256(passAccountSalt);
@@ -1932,6 +1939,7 @@ void UniverseServer::acceptConnection(UniverseConnection connection, Maybe<HostA
   if (!administrator)
     clientContext->setAdmin(false);
 
+  clientContext->setMaxLoadedSectors(maxLoadedSectors);
   clientContext->setShipUpgrades(clientConnect->shipUpgrades);
 
   m_connectionServer->addConnection(clientId, std::move(connection));

@@ -66,10 +66,10 @@ bool WorldServerThread::spawnTargetValid(SpawnTarget const& spawnTarget) {
   }
 }
 
-bool WorldServerThread::addClient(ConnectionId clientId, SpawnTarget const& spawnTarget, bool isLocal, bool isAdmin, NetCompatibilityRules netRules) {
+bool WorldServerThread::addClient(ConnectionId clientId, SpawnTarget const& spawnTarget, bool isLocal, bool isAdmin, int maxLoadedSectors, NetCompatibilityRules netRules) {
   try {
     RecursiveMutexLocker locker(m_mutex);
-    if (m_worldServer->addClient(clientId, spawnTarget, isLocal, isAdmin, netRules)) {
+    if (m_worldServer->addClient(clientId, spawnTarget, isLocal, isAdmin, maxLoadedSectors, netRules)) {
       m_clients.add(clientId);
       return true;
     }

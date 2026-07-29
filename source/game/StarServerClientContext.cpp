@@ -97,6 +97,16 @@ bool ServerClientContext::canBecomeAdmin() const {
   return m_canBecomeAdmin;
 }
 
+int ServerClientContext::maxLoadedSectors() const {
+  RecursiveMutexLocker locker(m_mutex);
+  return m_maxLoadedSectors;
+}
+
+void ServerClientContext::setMaxLoadedSectors(int maxLoadedSectors) {
+  RecursiveMutexLocker locker(m_mutex);
+  m_maxLoadedSectors = maxLoadedSectors;
+}
+
 NetCompatibilityRules ServerClientContext::netRules() const {
   return m_netRules;
 }

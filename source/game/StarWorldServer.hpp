@@ -89,7 +89,7 @@ public:
 
   // Returns false if the client id already exists, or the spawn target is
   // invalid.
-  bool addClient(ConnectionId clientId, SpawnTarget const& spawnTarget, bool isLocal, bool isAdmin = false, NetCompatibilityRules netRules = {});
+  bool addClient(ConnectionId clientId, SpawnTarget const& spawnTarget, bool isLocal, bool isAdmin = false, int maxLoadedSectors = 0, NetCompatibilityRules netRules = {});
 
   // Removes client, sends the WorldStopPacket, and returns any pending packets
   // for that client
@@ -302,6 +302,9 @@ private:
     bool started;
     bool local;
     bool admin;
+    // Maximum number of tile sectors streamed around this client's player.
+    // 0 (or negative) means unlimited.
+    int maxLoadedSectors;
 
     List<PacketPtr> outgoingPackets;
 

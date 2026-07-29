@@ -223,7 +223,7 @@ bool WorldServer::spawnTargetValid(SpawnTarget const& spawnTarget) const {
   return true;
 }
 
-bool WorldServer::addClient(ConnectionId clientId, SpawnTarget const& spawnTarget, bool isLocal, bool isAdmin, NetCompatibilityRules netRules) {
+bool WorldServer::addClient(ConnectionId clientId, SpawnTarget const& spawnTarget, bool isLocal, bool isAdmin, int maxLoadedSectors, NetCompatibilityRules netRules) {
   if (m_clientInfo.contains(clientId))
     return false;
 
@@ -260,6 +260,7 @@ bool WorldServer::addClient(ConnectionId clientId, SpawnTarget const& spawnTarge
   auto& clientInfo = m_clientInfo.add(clientId, make_shared<ClientInfo>(clientId, tracker));
   clientInfo->local = isLocal;
   clientInfo->admin = isAdmin;
+  clientInfo->maxLoadedSectors = maxLoadedSectors;
   clientInfo->clientState.setNetCompatibilityRules(netRules);
 
   auto worldStartPacket = make_shared<WorldStartPacket>();
@@ -379,6 +380,25 @@ void WorldServer::handleIncomingPackets(ConnectionId clientId, List<PacketPtr> c
 
       for (auto const& monitoredRegion : clientInfo->monitoringRegions(m_entityMap))
         clientInfo->activeSectors.addAll(m_tileArray->validSectorsFor(monitoredRegion));
+
+
+      int maxLoadedSectors = clientInfo->maxLoadedSectors;
+      if (maxLoadedSectors > 0 && (int)clientInfo->activeSectors.size() > maxLoadedSectors) {
+        Vec2F center;
+        if (auto player = m_entityMap->entity(clientInfo->clientState.playerId()))
+          center = player->position();
+        else
+          center = clientInfo->clientState.windowCenter();
+
+        auto sectors = clientInfo->activeSectors.values();
+        sort(sectors, [&](ServerTileSectorArray::Sector const& a, ServerTileSectorArray::Sector const& b) {
+            float da = m_geometry.diff(RectF(m_tileArray->sectorRegion(a)).center(), center).magnitudeSquared();
+            float db = m_geometry.diff(RectF(m_tileArray->sectorRegion(b)).center(), center).magnitudeSquared();
+            return da < db;
+          });
+        sectors.resize(maxLoadedSectors);
+        clientInfo->activeSectors = HashSet<ServerTileSectorArray::Sector>::from(sectors);
+      }
 
       clientInfo->pendingSectors.addAll(clientInfo->activeSectors.difference(oldSectors));
 
@@ -1991,6 +2011,16 @@ void WorldServer::queueUpdatePackets(ConnectionId clientId, bool sendRemoteUpdat
   for (auto const& monitoredRegion : clientInfo->monitoringRegions(m_entityMap))
     monitoredEntities.addAll(m_entityMap->entityQuery(RectF(monitoredRegion)));
 
+
+  if (clientInfo->maxLoadedSectors > 0) {
+    HashSet<EntityPtr> nearbyEntities;
+    for (auto const& entity : monitoredEntities) {
+      if (clientInfo->activeSectors.contains(m_tileArray->sectorFor(Vec2I::floor(entity->position()))))
+        nearbyEntities.add(entity);
+    }
+    monitoredEntities = std::move(nearbyEntities);
+  }
+
   auto entityFactory = Root::singleton().entityFactory();
   auto outOfMonitoredRegionsEntities = HashSet<EntityId>::from(clientInfo->clientSlavesNetVersion.keys());
   for (auto const& monitoredEntity : monitoredEntities)
@@ -2543,7 +2573,7 @@ bool WorldServer::isVisibleToPlayer(RectF const& region) const {
 }
 
 WorldServer::ClientInfo::ClientInfo(ConnectionId clientId, InterpolationTracker const trackerInit)
-  : clientId(clientId), skyNetVersion(0), weatherNetVersion(0), pendingForward(false), started(false), local(false), admin(false), interpolationTracker(trackerInit) {}
+  : clientId(clientId), skyNetVersion(0), weatherNetVersion(0), pendingForward(false), started(false), local(false), admin(false), maxLoadedSectors(0), interpolationTracker(trackerInit) {}
 
 List<RectI> WorldServer::ClientInfo::monitoringRegions(EntityMapPtr const& entityMap) const {
   return clientState.monitoringRegions([entityMap](EntityId entityId) -> Maybe<RectI> {
@@ -2636,12 +2666,13 @@ void WorldServer::setTemplate(WorldTemplatePtr newTemplate) {
     auto& info = m_clientInfo.get(client);
     bool local = info->local;
     bool isAdmin = info->admin;
+    int maxLoadedSectors = info->maxLoadedSectors;
     auto netRules = info->clientState.netCompatibilityRules();
     SpawnTarget spawnTarget;
     if (auto player = clientPlayer(client))
       spawnTarget = SpawnTargetPosition(player->position() + player->feetOffset());
     removeClient(client);
-    addClient(client, spawnTarget, local, isAdmin, netRules);
+    addClient(client, spawnTarget, local, isAdmin, maxLoadedSectors, netRules);
   }
 }
 

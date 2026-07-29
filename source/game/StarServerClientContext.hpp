@@ -29,6 +29,10 @@ public:
   String const& shipSpecies() const;
   bool canBecomeAdmin() const;
   NetCompatibilityRules netRules() const;
+
+
+  int maxLoadedSectors() const;
+  void setMaxLoadedSectors(int maxLoadedSectors);
   String descriptiveName() const;
 
   // Register additional rpc methods from other server side services.
@@ -96,6 +100,7 @@ private:
   String const m_playerName;
   String m_shipSpecies;
   bool const m_canBecomeAdmin;
+  int m_maxLoadedSectors = 0;
 
   mutable RecursiveMutex m_mutex;
 
